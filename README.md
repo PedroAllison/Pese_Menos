@@ -30,6 +30,16 @@ npx expo start
 
 Abra no celular com o app **Expo Go** (lendo o QR code). Para notificações completas no Android, gere um build de desenvolvimento: `npx expo run:android` ou `eas build`.
 
+## Gerar APK (Android)
+
+```bash
+npm install -g eas-cli
+eas login
+eas build -p android --profile preview
+```
+
+Ao final, o EAS mostra um link/QR code para baixar e instalar o APK no celular.
+
 ## Estrutura
 
 ```
