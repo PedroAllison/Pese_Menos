@@ -1,0 +1,55 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+
+      - name: Gerar projeto Android
+        run: npx expo prebuild -p android --no-install
+
+      - name: Compilar APK
+        working-directory: android
+        env:
+          GRADLE_OPTS: -Xmx4g -Dorg.gradle.daemon=false
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+
+      - name: Renomear APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk PeseMenos.apk
+
+      - name: Publicar na Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Pese Menos v1.0.${{ github.run_number }}
+          body: |
+            Baixe o arquivo **PeseMenos.apk** abaixo e instale no Android.
+          files: PeseMenos.apk
+          make_latest: true
