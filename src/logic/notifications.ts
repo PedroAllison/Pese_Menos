@@ -10,16 +10,30 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// No Expo Go (Android) as notificações não são totalmente suportadas;
+// por isso toda chamada é protegida para nunca derrubar o app.
 export async function requestPermission() {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Lembretes', importance: Notifications.AndroidImportance.HIGH,
-    });
+  try {
+    if (Platform.OS === 'android') {
+      try {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Lembretes',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#16a34a',
+        });
+      } catch (e) {
+        console.log('Canal de notificação indisponível (Expo Go?):', e);
+      }
+    }
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') return true;
+    const r = await Notifications.requestPermissionsAsync();
+    return r.status === 'granted';
+  } catch (e) {
+    console.log('Notificações indisponíveis:', e);
+    return false;
   }
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status === 'granted') return true;
-  const r = await Notifications.requestPermissionsAsync();
-  return r.status === 'granted';
 }
 
 let running = false;
@@ -32,6 +46,8 @@ export async function rescheduleAll(state: AppState) {
   if (running || !state.profile) return;
   running = true;
   try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return;
     await Notifications.cancelAllScheduledNotificationsAsync();
     const now = new Date();
     const p = state.profile;
@@ -85,6 +101,8 @@ export async function rescheduleAll(state: AppState) {
         }
       }
     }
+  } catch (e) {
+    console.log('Falha ao agendar lembretes:', e);
   } finally {
     running = false;
   }
